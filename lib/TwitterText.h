@@ -20,7 +20,9 @@
 + (NSArray*)hashtagsInText:(NSString*)text checkingURLOverlap:(BOOL)checkingURLOverlap;
 + (NSArray*)symbolsInText:(NSString*)text checkingURLOverlap:(BOOL)checkingURLOverlap;
 + (NSArray*)mentionedScreenNamesInText:(NSString*)text;
++ (NSArray*)mentionedScreenNamesInText:(NSString*)text uniqueValues:(BOOL)uniqueValues;
 + (NSArray*)mentionsOrListsInText:(NSString*)text;
++ (NSArray*)mentionsOrListsInText:(NSString*)text uniqueValues:(BOOL)uniqueValues;
 + (TwitterTextEntity*)repliedScreenNameInText:(NSString*)text;
 
 + (NSInteger)tweetLength:(NSString*)text;

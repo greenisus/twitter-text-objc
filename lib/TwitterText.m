@@ -556,65 +556,91 @@ static const NSInteger HTTPSShortURLLength = 23;
     return results;
 }
 
-+ (NSArray*)mentionedScreenNamesInText:(NSString*)text
++ (NSArray*)mentionedScreenNamesInText:(NSString*)text uniqueValues:(BOOL)uniqueValues
 {
     if (!text.length) {
         return [NSArray array];
     }
-
-    NSArray *mentionsOrLists = [self mentionsOrListsInText:text];
+    
+    NSArray *mentionsOrLists = [self mentionsOrListsInText:text uniqueValues:uniqueValues];
     NSMutableArray *results = [NSMutableArray array];
-
+    
     for (TwitterTextEntity *entity in mentionsOrLists) {
         if (entity.type == TwitterTextEntityScreenName) {
             [results addObject:entity];
         }
     }
-
+    
     return results;
 }
 
-+ (NSArray*)mentionsOrListsInText:(NSString*)text
++ (NSArray*)mentionedScreenNamesInText:(NSString*)text
+{
+    return [self mentionedScreenNamesInText:text uniqueValues:NO];
+}
+
++ (NSArray*)mentionsOrListsInText:(NSString*)text uniqueValues:(BOOL)uniqueValues
 {
     if (!text.length) {
         return [NSArray array];
     }
-
+    
     NSMutableArray *results = [NSMutableArray array];
+    NSMutableArray *values = [NSMutableArray array];
     NSInteger len = text.length;
     NSInteger position = 0;
-
+    
     while (1) {
         NSTextCheckingResult *matchResult = [[self validMentionOrListRegexp] firstMatchInString:text options:NSMatchingWithoutAnchoringBounds range:NSMakeRange(position, len - position)];
         if (!matchResult || matchResult.numberOfRanges < 5) {
             break;
         }
-
+        
         NSRange allRange = matchResult.range;
         NSInteger end = NSMaxRange(allRange);
-
+        
         NSRange endMentionRange = [[self endMentionRegexp] rangeOfFirstMatchInString:text options:0 range:NSMakeRange(end, len - end)];
         if (endMentionRange.location == NSNotFound) {
             NSRange atSignRange = [matchResult rangeAtIndex:2];
             NSRange screenNameRange = [matchResult rangeAtIndex:3];
             NSRange listNameRange = [matchResult rangeAtIndex:4];
-
+            
             if (listNameRange.location == NSNotFound) {
-                TwitterTextEntity *entity = [TwitterTextEntity entityWithType:TwitterTextEntityScreenName range:NSMakeRange(atSignRange.location, NSMaxRange(screenNameRange) - atSignRange.location)];
-                [results addObject:entity];
+                
+                NSRange range = NSMakeRange(atSignRange.location, NSMaxRange(screenNameRange) - atSignRange.location);
+                NSString *value = [text substringWithRange:range];
+                
+                if (!(uniqueValues && [values containsObject:value])) {
+                    TwitterTextEntity *entity = [TwitterTextEntity entityWithType:TwitterTextEntityScreenName range:range];
+                    [results addObject:entity];
+                    [values addObject:value];
+                }
+                
             } else {
-                TwitterTextEntity *entity = [TwitterTextEntity entityWithType:TwitterTextEntityListName range:NSMakeRange(atSignRange.location, NSMaxRange(listNameRange) - atSignRange.location)];
-                [results addObject:entity];
+                
+                NSRange range = NSMakeRange(atSignRange.location, NSMaxRange(listNameRange) - atSignRange.location);
+                NSString *value = [text substringWithRange:range];
+                
+                if (!(uniqueValues && [values containsObject:value])) {
+                    TwitterTextEntity *entity = [TwitterTextEntity entityWithType:TwitterTextEntityListName range:range];
+                    [results addObject:entity];
+                }
+                
             }
         } else {
             // Avoid matching the second username in @username@username
             end++;
         }
-
+        
         position = end;
     }
-
+    
     return results;
+}
+
++ (NSArray*)mentionsOrListsInText:(NSString*)text
+{
+    return [self mentionsOrListsInText:text uniqueValues:NO];
 }
 
 + (TwitterTextEntity*)repliedScreenNameInText:(NSString*)text
